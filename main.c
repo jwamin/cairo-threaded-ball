@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <cairo.h>
 #include <unistd.h>
+#include <string.h>
+#include <time.h>
 
 //1. Define dimensions of output image
 #define NUMBEROFIMAGES 8
@@ -52,37 +54,76 @@ void *cairoDraw(void* arguments) {
 }
 
 int main(int argc, const char** argv) {
-    printf("Hello, World!\n");
-    pthread_t *threads[NUMBEROFIMAGES];
-    pthread_t *currentThread;
-    int thread_args[NUMBEROFIMAGES];
 
-    int resultCode, joinSuccess;
+    printf("%d %s\n",argc, argv);
+    int singleThreaded = 0;
+
+    if ( argc > 1 ) {
+
+        const char *fistArg = argv[1];
+        if (strstr(fistArg, "-s")) {
+            printf("asked to run single threaded\n");
+            singleThreaded = 1;
+        }
+
+    } else {
+        printf("will run multi threaded\n");
+    }
+
+
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
+
 
     int numberOfImages = NUMBEROFIMAGES - 1;
+    int thread_args[NUMBEROFIMAGES];
 
-    for (int i = 0; i < numberOfImages; i++){
+    if (singleThreaded == 0) {
 
-        thread_args[i] = i;
-        resultCode = pthread_create(&threads[i],NULL,cairoDraw,&thread_args[i]);
-        printf("threads created %d\n",thread_args[i]);
-        assert(!resultCode);
+        pthread_t *threads[NUMBEROFIMAGES];
+        pthread_t *currentThread;
+
+        int resultCode, joinSuccess;
+
+        for (int i = 0; i < numberOfImages; i++) {
+
+            thread_args[i] = i;
+            //3. use threads to generate images with cairo
+            resultCode = pthread_create(&threads[i], NULL, cairoDraw, &thread_args[i]);
+            printf("threads created %d\n", thread_args[i]);
+            assert(!resultCode);
+
+        }
+
+        for (int i = 0; i < numberOfImages; i++) {
+            currentThread = threads[i];
+
+            //4. LInk threads to ensure all complete before exiting
+            joinSuccess = pthread_join(currentThread, NULL);
+            assert(!joinSuccess);
+        }
+
+
+    } else {
+
+        //call function iteratively on the main thread
+        for (int i = 0; i < numberOfImages; i++) {
+
+            printf("creating image %d on main thread\n",i);
+            thread_args[i] = i;
+            cairoDraw(&thread_args[i]);
+
+        }
 
     }
 
-    for (int i = 0; i < numberOfImages; i++){
-        currentThread = threads[i];
-        joinSuccess = pthread_join(currentThread, NULL);
-        assert(!joinSuccess);
+    const char* processType = (singleThreaded) ? "Single Threaded" : "Multi Threaded";
 
-    }
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 
-    printf("done");
-
-//3. use threads to generate images with cairo
-
-//4. LInk threads to ensure all complete before exiting
-
+    printf("done, in %fs (%s)", cpu_time_used, processType);
 
     return EXIT_SUCCESS;
 }
