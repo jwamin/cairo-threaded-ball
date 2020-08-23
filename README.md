@@ -23,11 +23,17 @@ So the single threaded execution takes approximately one third of the time of th
 `stdio.h` - input and output
 
 `stdlib.h` - signals
+
 `pthread.h` - threading
+
 `assert.h` - error checking
+
 `cairo.h` - drawing
+
 `unistd.h` - posix APIs e.g "sleep"
+
 `string.h` - strings
+
 `time.h` - measuring the length of execution
 
 If you need Cairo, get it from https://cairographics.org/download/ 
